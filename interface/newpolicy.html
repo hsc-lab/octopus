@@ -1,0 +1,265 @@
+<!--
+  ___       _
+ / _ \  ___| |_ ___  _ __  _   _ ___
+| | | |/ __| __/ _ \| '_ \| | | / __|
+| |_| | (__| || (_) | |_) | |_| \__ \
+ \___/ \___|\__\___/| .__/ \__,_|___/
+                    |_|
+
+<HSC-Herve Schauer Consultants 2015>
+
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Octopus cracker</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/dashboard.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="index.html">Octopus cracker</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Configuration</a></li>
+            <li><a href="#">Aide</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+          <ul class="nav nav-sidebar">
+            <li><a href="index.html">Attaques en cours</a></li>
+            <li><a href="done.html">Attaques terminées</a></li>
+            <li><a href="machines.html">Machines disponibles</a></li>
+          </ul>
+          <ul class="nav nav-sidebar">
+            <li><a href="newjob.html">Lancer une attaque simple</a></li>
+            <li><a href="newpjob.html">Lancer une attaque par politique</a></li>
+            <li class="active"><a href="newpolicy.html">Nouvelle politique d'attaque</a></li>
+            <li><a href="policies.html">Gestion des politiques</a></li>
+          </ul>
+        </div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+          <h1 class="page-header">Tableau de bord</h1>
+          <h2 class="sub-header">Nouvelle politique d'attaque</h2>
+            <div id="submitted"></div>
+            <label>Nom de la politique</label>
+            <form class="form-inline" role="form" onsubmit="sendPolicy();return false;">
+              <div class="form-group">
+                <input type="text" class="form-control" id="policy" placeholder="Entrer le nom">
+                <button type="button" class="btn btn-primary" id="submit">Créer la politique</button>
+              </div>
+            </form><br />
+            <label>Attaques</label>
+            <form class="form-inline" role="form" onsubmit="addAttack();return false;">
+              <div class="form-group">
+                <select class="form-control" id="types">
+                </select>
+              </div>
+              <div class="form-group">
+                <input type="text" class="form-control" id="attack" placeholder="Entrer l'attaque (voir aide)">
+              </div>
+              <button type="button" class="btn btn-default" id="add">Ajouter l'attaque</button>
+            </form><br />
+            <table class="table table-striped" id="tabletasks">
+              <thead>
+                <tr>
+                  <th width="10%">Ordre</th>
+                  <th width="16%">Type d'attaque</th>
+                  <th width="54%">Attaque</th>
+                  <th width="20%">Supprimer</th>
+                </tr>
+              </thead>
+              <tbody id="array">
+              </tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="js/jquery.js"></script>
+    <script src="js/jquery-ui.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/holder.js"></script>
+    <script>
+      $.support.cors = true;
+    </script>
+    <script>
+      var attacks = [];
+
+      function sendRequest(request, callback) {
+        var addr = "http://localhost:4488/?cmd=" + JSON.stringify(request);
+        $.getJSON(addr, callback);
+      }
+
+      function addAttack() {
+        attacks.push({"type": $("#types").val(), "attack": $("#attack").val().replace("<", "&lt;").replace(">", "&gt;")});
+        update();
+      }
+
+      function attacktypes(response) {
+        for(var i=0; i<response[1].length; i++) {
+          $("<option/>").attr("value", response[1][i]).text(response[1][i]).appendTo("#types");
+          //$("#types").append("<option value=\"" + response[1][i] + "\">" + response[1][i] + "</option>");
+        }
+      }
+
+      var req = ["GET", "attacks", []];
+      sendRequest(req, attacktypes);
+
+      function removeAttack(ind) {
+        return function() {
+          attacks.splice(ind, 1);
+          update();
+        };
+      }
+
+      function moveUp(ind) {
+          var count = parseInt(ind);
+          var b = attacks[count];
+          attacks[count] = attacks[count-1];
+          attacks[count-1] = b;
+      }
+
+      function moveDown(ind) {
+          var count = parseInt(ind);
+          var b = attacks[count+1];
+          attacks[count+1] = attacks[count];
+          attacks[count] = b;
+      }
+
+      function sendPolicy() {
+        var i;
+        var name = $("#policy").val();
+        var policy = [];
+        for(i in attacks) {
+          var attack = [attacks[i]["type"], attacks[i]["attack"].replace("&lt;", "<").replace("&gt;", ">")];
+          policy.push(attack);
+        }
+        var req = ["PUT", "policy", [name, policy]];
+        sendRequest(req, function(response) {
+            if(response[0] == "ERROR") {
+              $("#submitted").html("<div class=\"alert alert-danger\" role=\"alert\">" + response[1] + "</div>");
+            }
+            else {
+              $("#submitted").html("<div class=\"alert alert-success\" role=\"alert\">Politique envoyée avec succès !</div>");
+            }
+            setTimeout(function() {
+              $("#submitted").fadeOut(function () {
+                $("#submitted").text("").fadeIn();
+                });
+            }, 3000);
+          })
+      }
+
+      function update() {
+        $("#array").html("");
+        var ind;
+        for(ind in attacks) {
+          var toAppend = "";
+          var count = parseInt(ind) + 1;
+          toAppend += "<tr>";
+          toAppend += "<td>" + count + "</td>";
+          toAppend += "<td>" + attacks[ind]["type"] + "</td>";
+          toAppend += "<td>" + attacks[ind]["attack"] + "</td>";
+          toAppend += "<td>";
+          toAppend += "<a href=\"#\" id=\"r" + ind + "\"><span class=\"glyphicon glyphicon-remove\"></span></a>";
+          toAppend += "</td>";
+          toAppend += "</tr>"
+          $("#array").append(toAppend);
+          $("#r" + ind).click(removeAttack(ind));
+        }
+      }
+
+      function fixHelper(e, ui) {
+        ui.children().each(function() {
+          $(this).width($(this).width());
+        });
+        return ui;
+      }
+
+      $("#add").click(addAttack);
+      $("#submit").click(sendPolicy);
+      $("#array").sortable({
+        start: function(event, ui) {
+          ui.item.startPos = ui.item.index();
+        },
+        stop: function(event, ui) {
+          if(ui.item.startPos < ui.item.index()) {
+            var i;
+            var nb = ui.item.index() - ui.item.startPos;
+            for(i=0; i<nb; i++) {
+              moveDown(ui.item.startPos + i);
+            }
+          }
+          else {
+            var i;
+            var nb = ui.item.startPos - ui.item.index();
+            for(i=0; i<nb; i++) {
+              moveUp(ui.item.startPos - i);
+            }
+          }
+          update();
+        },
+        helper: function(event, ui) {
+          ui.children().each(function() {
+            $(this).width($(this).width());
+          });
+          return ui;
+        }
+      });
+    </script>
+  </body>
+</html>
+

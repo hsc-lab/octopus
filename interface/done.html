@@ -1,0 +1,311 @@
+<!--
+  ___       _
+ / _ \  ___| |_ ___  _ __  _   _ ___
+| | | |/ __| __/ _ \| '_ \| | | / __|
+| |_| | (__| || (_) | |_) | |_| \__ \
+ \___/ \___|\__\___/| .__/ \__,_|___/
+                    |_|
+
+<HSC-Herve Schauer Consultants 2015>
+
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Octopus cracker</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/dashboard.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="index.html">Octopus cracker</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Configuration</a></li>
+            <li><a href="#">Aide</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+          <ul class="nav nav-sidebar">
+            <li><a href="index.html">Attaques en cours</a></li>
+            <li class="active"><a href="done.html">Attaques terminées</a></li>
+            <li><a href="machines.html">Machines disponibles</a></li>
+          </ul>
+          <ul class="nav nav-sidebar">
+            <li><a href="newjob.html">Lancer une attaque simple</a></li>
+            <li><a href="newpjob.html">Lancer une attaque par politique</a></li>
+            <li><a href="newpolicy.html">Nouvelle politique d'attaque</a></li>
+            <li><a href="policies.html">Gestion des politiques</a></li>
+          </ul>
+        </div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+          <h1 class="page-header">Tableau de bord</h1>
+          <h2 class="sub-header">Attaques terminées</h2>
+          <div class="table-responsive">
+            <table class="table table-striped" id="tfinished">
+              <thead>
+                <tr>
+                  <th width="29%">ID</th>
+                  <th width="29%">Temps écoulé</th>
+                  <th width="29%">Mots de passe trouvés</th>
+                  <th width="13%">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="finished">
+                <tr><td colspan=4 align="center"><i>Chargement...</i></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h2 class="sub-header">Attaques arrêtées</h2>
+          <div class="table-responsive">
+            <table class="table table-striped" id="tstopped">
+              <thead>
+                <tr>
+                  <th width="29%">ID</th>
+                  <th width="29%">Temps écoulé</th>
+                  <th width="29%">Mots de passe trouvés</th>
+                  <th width="13%">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="stopped">
+                <tr><td colspan=4 align="center"><i>Chargement...</i></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="results" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 class="modal-title" id="titleResults"></h4>
+          </div>
+          <div class="modal-body" id="textResults">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Fermer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="resume" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 class="modal-title" id="titleResume"></h4>
+          </div>
+          <div class="modal-body" id="textResume">
+          </div>
+          <div class="modal-footer" id="buttonsResume">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="purgecrack" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 class="modal-title" id="titlePurge"></h4>
+          </div>
+          <div class="modal-body" id="textPurge">
+          </div>
+          <div class="modal-footer" id="buttonsPurge">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="js/jquery.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/holder.js"></script>
+    <script>
+      $.support.cors = true;
+    </script>
+    <script>
+      function elapsed(start, end){
+        if(end == null) {
+          var a = new Date((new Date().getTime()) - start*1000);
+        }
+        else {
+          var a = new Date((end - start)*1000);
+        }
+        var date = a.getDate() - 1;
+        var hour = a.getHours() - 1;
+        var min = a.getMinutes();
+        var sec = a.getSeconds();
+        var time = date + 'j, ' + hour + 'h, ' + min + 'min, ' + sec + 'sec' ;
+        return time;
+      }
+
+      function sendRequest(request, callback) {
+        var addr = "http://localhost:4488/?cmd=" + JSON.stringify(request);
+        $.getJSON(addr, callback);
+      }
+
+      function resultsJob(job) {
+        return function() {
+          $("#titleResults").html("Résultats pour " + job);
+          var req = ["GET", "results", [job]];
+          sendRequest(req, results);
+        }
+      }
+      function resumeJob(job) {
+        return function() {
+          $("#titleResume").html("Reprendre " + job + "?");
+          $("#textResume").html("Es-tu sûr de vouloir reprendre " + job + " ?");
+          var buttons = "<button type=\"button\" class=\"btn btn-primary\" data-dismiss=\"modal\" id=\"yesResume\">Oui</button>";
+          buttons += "<button type=\"button\" class=\"btn btn-default\" data-dismiss=\"modal\">Non j'ai cliqué pour rigoler lol</button>";
+          $("#buttonsResume").html(buttons);
+          $("#yesResume").on("click", function() {
+            var req = ["RESUME", job];
+            sendRequest(req, function(response) {});
+            })
+        }
+      }
+      function purgeJob(job) {
+        return function() {
+          $("#titlePurge").html("Supprimer " + job + "?");
+          $("#textPurge").html("Es-tu sûr de vouloir supprimer " + job + " ? Attention, tous les résultats seront perdus !");
+          var buttons = "<button type=\"button\" class=\"btn btn-primary\" data-dismiss=\"modal\" id=\"yesPurge\">Oui</button>";
+          buttons += "<button type=\"button\" class=\"btn btn-default\" data-dismiss=\"modal\">Non j'ai cliqué pour rigoler lol</button>";
+          $("#buttonsPurge").html(buttons);
+          $("#yesPurge").on("click", function() {
+            var req = ["PURGE", job];
+            sendRequest(req, function(response) {
+              var req = ["GET", "infos", []];
+              sendRequest(req, jobsInfos);
+            });
+          })
+        }
+      }
+      function results(response) {
+        var count = 0;
+        $("#textResults").html("");
+        var res = response[1];
+        var len = res.length
+        var i;
+        for(i=0; i<len; i++) {
+          $("#textResults").append("<samp>" + res[i] + "</samp><br />");
+          count += 1;
+        }
+        if(count == 0) {
+          $("#textResults").html("Aucun résultat disponible");
+        }
+      }
+
+      function jobsInfos(response) {
+        $("#finished").html("");
+        $("#stopped").html("");
+        if(response[0] == "ERROR") {
+          $("#finished").append("<tr><td class=\"warning\" colspan=5 align=\"center\"><i>" + response[1] + "</i></td></tr>");
+          $("#stopped").append("<tr><td class=\"warning\" colspan=5 align=\"center\"><i>" + response[1] + "</i></td></tr>");
+        }
+        else {
+          jobs = response[1];
+          var countfinished = 0;
+          var countstopped = 0;
+          var job;
+          for(job in jobs) {
+            console.log(job);
+            if(jobs[job]["how"] == "finished") {
+              countfinished += 1;
+              var toAppend = "<tr><td>" + job + "</td>"
+              toAppend += "<td>" + elapsed(jobs[job]["stime"], jobs[job]["etime"]) + "</td>";
+              toAppend += "<td>" + jobs[job]["nbfound"] + "/" + jobs[job]["nbpass"] + "</td>";
+              toAppend += "<td><a href=\"#results\" id=\"r" + job + "\" data-toggle=\"modal\" data-placement=\"left\">"
+              toAppend += "<img src=\"img/results.png\" alt=\"Results\"></a> "
+              toAppend += "<a href=\"#purgecrack\" id=\"p" + job + "\" data-toggle=\"modal\" data-placement=\"left\">"
+              toAppend += "<img src=\"img/trash.png\" alt=\"Purge\"></a></td></tr>";
+              $("#finished").append(toAppend);
+              $("#r" + job).click(resultsJob(job));
+              $("#p" + job).click(purgeJob(job));
+            }
+            if(jobs[job]["how"] == "stopped") {
+              countstopped += 1;
+              var toAppend = "<tr><td>" + job + "</td>"
+              toAppend += "<td>" + elapsed(jobs[job]["stime"], jobs[job]["etime"]) + "</td>";
+              toAppend += "<td>" + jobs[job]["nbfound"] + "/" + jobs[job]["nbpass"] + "</td>";
+              toAppend += "<td><a href=\"#results\" id=\"r" + job + "\" data-toggle=\"modal\" data-placement=\"left\">"
+              toAppend += "<img src=\"img/results.png\" alt=\"Results\"></a> "
+              toAppend += "<a href=\"#resume\" id=\"rs" + job + "\" data-toggle=\"modal\" data-placement=\"left\">"
+              toAppend += "<img src=\"img/resume.png\" alt=\"Resume\"></a> "
+              toAppend += "<a href=\"#purgecrack\" id=\"p" + job + "\" data-toggle=\"modal\" data-placement=\"left\">"
+              toAppend += "<img src=\"img/trash.png\" alt=\"Purge\"></a></td></tr>";
+              $("#stopped").append(toAppend);
+              $("#r" + job).click(resultsJob(job));
+              $("#rs" + job).click(resumeJob(job));
+              $("#p" + job).click(purgeJob(job));
+            }
+          }
+          if(countfinished == 0) {
+            $("#finished").append("<tr><td colspan=5 align=\"center\"><i>Aucune tâche terminée</i></td></tr>");
+          }
+          if(countstopped == 0) {
+            $("#stopped").append("<tr><td colspan=5 align=\"center\"><i>Aucune tâche arrêtée</i></td></tr>");
+          }
+        }
+      }
+      var req = ["GET", "infosended", []];
+      sendRequest(req, jobsInfos);
+      var time = setInterval(function() {
+        sendRequest(req, jobsInfos);
+      }, 10000);
+    </script>
+  </body>
+</html>
