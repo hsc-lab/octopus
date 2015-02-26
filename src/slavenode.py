@@ -265,6 +265,19 @@ class SlaveProtocol(object, LineReceiver):
             vars["a"] = charsets["a"]
             if debug:
                 print "    Charsets set in vars"
+            if not vars["JOB"]:
+                vars["JOB"] = "%s/tmp/chunk" %(home)
+                dname, nb, step = job.split(":")
+                nb = int(nb)
+                step = int(step)
+                self.program = program
+                self.type = type
+                self.vars = vars
+                self.reg = reg
+                self.deferatt = defer.Deferred()
+                self.deferatt.addCallback(self.resumeAtt)
+                self.sendGet("chunk", [dname, nb, step])
+                return
             cmd = attack(program, type, vars)
             if debug:
                 print "    Command:", cmd
@@ -342,6 +355,15 @@ class SlaveProtocol(object, LineReceiver):
         if self.factory.ap:
             self.factory.ap.transport.signalProcess("KILL")
         reactor.stop()
+
+    def putChunk(self, chunk):
+        """
+        Answer to a PUT chunk command. Used to store a chunk.
+        """
+        with open("%s/tmp/chunk" %(home), "a") as f:
+            chunk = "\n".join(chunk).encode("utf-8")
+            f.write(chunk)
+        self.deferatt.callback()
 
     def putDictionary(self, chunk, name):
         """
@@ -459,6 +481,24 @@ class SlaveProtocol(object, LineReceiver):
         self.sendRequest(json.dumps(["WAIT"]))
 
     # ======================= END SEND FUNCTIONS ======================= #
+    def resumeAtt(self):
+        reg = self.reg
+        program = self.program
+        type = self.type
+        vars = self.vars
+        cmd = attack(program, type, vars)
+        if debug:
+            print "    Command:", cmd
+        else:
+            print "octopus_sh$", cmd
+        self.factory.ap = AttackProtocol(reg, self)
+        ap = self.factory.ap
+        reactor.spawnProcess(ap, cmd.split()[0], cmd.split(), {})
+        self.deferred = defer.Deferred()
+        self.deferred.addCallback(self.sendResult)
+        if debug:
+            print "    Attack started!"
+
 
 class AttackProtocol(protocol.ProcessProtocol):
 

@@ -29,7 +29,6 @@ under the License.
 
 import string
 import params
-import os
 import math
 import Queue
 from params import charsets
@@ -224,41 +223,17 @@ def dictionary(dictionary, id):
     """
     Creates jobs for a dictionary attack.
     """
+    step = wordsbynodedict
     path = "%s/%s.txt" %(params.dictpath, dictionary)
-    tmp = os.listdir("%s/tmp/%s" %(home, id))
-    tmp.remove("hashes")
-    l = [int(a.split("part")[1]) for a in tmp] + [-1]
-    offset = max(l) + 1
-    with open(path, "r") as file:
-        # Make chunks from a dictionary
-        jobs = dictToChunks(file, id, offset)
-    return jobs
-
-
-def dictToChunks(file, id, offset):
-    """
-    Takes a dictionary and creates chunks with it.
-    """
-    jobs = []
+    with open(path, "r") as f:
+        dic = f.readlines()
     count = 0
-    curdict = ""
-    if not os.path.exists("%s/tmp/%s" %(home, id)):
-        os.mkdir("%s/tmp/%s" %(home, id))
-    for curLine in file.xreadlines():
-        curdict+= "\n" + curLine.decode('latin-1').encode('utf-8')
-        count+=1
-        if count == wordsbynodedict:
-            num = len(jobs) + offset
-            path = "%s/tmp/%s/part%d" %(home, id, num)
-            jobs.append(path)
-            createChunk(path, curdict)
-            curdict = ""
-            count = 0
-    if curdict:
-        num = len(jobs) + offset
-        path = "%s/tmp/%s/part%d" %(home, id, num)
-        jobs.append(path)
-        createChunk(path, curdict)
+    jobs = []
+    while dic:
+        part = "%s:%d:%d" %(dictionary, count, step)
+        jobs.append(part)
+        dic = dic[step:]
+        count += 1
     return jobs
 
 
@@ -300,7 +275,7 @@ def save_dictionary(chunk, path):
 
 typeToChunker = {"mask": mask, "dictionary": dictionary,
                     "toggle_case": dictionary}
-getChunk = {"mask": get_mask, "dictionary": get_dictionary,
-            "toggle_case": get_dictionary}
-saveChunk = {"mask": save_mask, "dictionary": save_dictionary,
-            "toggle_case": save_dictionary}
+getChunk = {"mask": get_mask, "dictionary": get_mask,
+            "toggle_case": get_mask}
+saveChunk = {"mask": save_mask, "dictionary": save_mask,
+            "toggle_case": save_mask}

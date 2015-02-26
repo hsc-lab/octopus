@@ -168,6 +168,7 @@ class MasterProtocol(object, LineReceiver):
                             "nbjobs": self.putNbJobs,
                             "hashes": self.putHashes}
         self.getActions = {"results": self.getResults,
+                            "chunk": self.getChunk,
                             "dictionaries": self.getDictionaries,
                             "dictlist": self.getDictlist}
         self.sendNodetype()
@@ -433,7 +434,6 @@ class MasterProtocol(object, LineReceiver):
         """
         if debug:
             print "MasterProtocol.slave()"
-        self.factory.slavenodes.append(self)
         self.job = None
         self.father = None
         self.id = None
@@ -491,7 +491,13 @@ class MasterProtocol(object, LineReceiver):
                     self.sendPut("dictionary", [dict[:100000], dname])
                     dict = dict[100000:]
             print "%s sent!" %(dname)
+        self.factory.slavenodes.append(self)
         self.work()
+
+    def getChunk(self, dic, nb, step):
+        with open("%s/%s.txt" %(dictpath, dic), "r") as f:
+            chunk = "\n".join(f.readlines()[nb*step:(nb+1)*step])
+            self.sendPut("dictionary", [chunk, dic])
 
     def getDictlist(self):
         dictlist = dict()

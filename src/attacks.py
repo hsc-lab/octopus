@@ -31,6 +31,10 @@ from params import att_types, dictpath, slavenode
 import os
 import string
 import re
+import sys
+
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 
 slavehome = slavenode["vars"]["HOME"]
@@ -229,11 +233,11 @@ def hashcat_mask(vars):
 
 # Hashcat dictionary attacks
 hd_cmd = "$PROGS/hashcat/hashcat-cli32.bin -m $HASHTYPE -a 0 "
-hd_cmd += "$HOME/tmp/hashes $HOME/tmp/dictionary"
+hd_cmd += "$HOME/tmp/hashes $HOME/tmp/chunk"
 
 ht_cmd = "$PROGS/hashcat/hashcat-cli32.bin -m $HASHTYPE -a 5 "
 ht_cmd += "--table-file $HOME/tables/toggle_case.table $HOME/tmp/hashes "
-ht_cmd += "$HOME/tmp/dictionary"
+ht_cmd += "$HOME/tmp/chunk"
 
 
 def hashcat_dictionary(vars):
@@ -255,16 +259,20 @@ def make_hashcat_mask(job):
 
 
 def make_hashcat_dictionary(job):
-    if os.path.exists("%s/tmp/dictionary" %slavehome):
-        os.remove("%s/tmp/dictionary" %slavehome)
-    with open("%s/tmp/dictionary" %slavehome, "a") as f:
-        for word in job:
-            # TODO: Solve problem
-            try:
-                f.write(word + "\n")
-            except UnicodeEncodeError:
-                pass
-    return "%s/tmp/dictionary" %slavehome
+    dname, nb, step = job.split(":")
+    if not os.path.isfile("%s/dictionaries/%s.txt" %(slavehome, dname)):
+        return
+    nb = int(nb)
+    step = int(step)
+    with open("%s/dictionaries/%s.txt" %(slavehome, dname), "r") as f:
+        job = f.readlines()[nb*step:(nb+1)*step]
+        job = [w.replace("\n", "") for w in job]
+    if os.path.exists("%s/tmp/chunk" %(slavehome)):
+        os.remove("%s/tmp/chunk" %(slavehome))
+    with open("%s/tmp/chunk" %(slavehome), "w") as f:
+        chunk = "\n".join(job).encode("utf-8")
+        f.write(chunk)
+    return "%s/tmp/chunk" %(slavehome)
 
 
 makeJob = {"mask": {"hashcat": make_hashcat_mask},

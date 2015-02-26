@@ -357,15 +357,21 @@ class APIProtocol(object, LineReceiver):
         host, port = peer.host, peer.port
         logger.log("Recv from %s:%d: %s"%(host, port, data))
         # Requests must be sent by JSON. Send back an error if it is not.
-        if data[-1] == "\x03":
-            self.buffer += data[:-1]
+        if self.request:
+            if data[-1] == "\x03":
+                self.buffer += data[:-1]
+                try:
+                    cmd = json.loads(self.buffer)
+                except ValueError as e:
+                    self.sendError("Your request is not a JSON")
+            else:
+                self.buffer += data
+                return
+        else:
             try:
-                cmd = json.loads(self.buffer)
+                cmd = json.loads(data)
             except ValueError as e:
                 self.sendError("Your request is not a JSON")
-        else:
-            self.buffer += data
-            return
 #        self.buffer += data
 #        try:
 #            cmd = json.loads(self.buffer)
