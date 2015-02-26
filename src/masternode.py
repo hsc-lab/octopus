@@ -160,7 +160,8 @@ class MasterProtocol(object, LineReceiver):
         self.nodes = {"api": self.api,
                         "master": self.master,
                         "secondary": self.secondary,
-                        "slave": self.slave}
+                        "slave": self.slave,
+                        "slavesync": self.slavesync}
         self.putActions = {"file": self.putFile,
                             "fathers": self.putFathers,
                             "jobs": self.putJobs,
@@ -225,11 +226,20 @@ class MasterProtocol(object, LineReceiver):
         peer = self.transport.getPeer()
         host, port = peer.host, peer.port
         logger.log("Recv from %s:%d: %s" %(host, port, data))
-        self.buffer += data
-        try:
-            cmd = json.loads(self.buffer)
-        except ValueError as e:
+        if data[-1] == "\x03":
+            self.buffer += data[:-1]
+            try:
+                cmd = json.loads(self.buffer)
+            except ValueError as e:
+                self.sendError("Your request is not a JSON")
+        else:
+            self.buffer += data
             return
+#        self.buffer += data
+#        try:
+#            cmd = json.loads(self.buffer)
+#        except ValueError as e:
+#            return
         self.buffer = ""
         if cmd:
             if cmd[0] in self.proto.keys():
@@ -248,6 +258,7 @@ class MasterProtocol(object, LineReceiver):
         if debug:
             print "MasterProtocol.sendRequest(%s) to %s:%d" %(data, host, port)
         logger.log("Sent to %s:%d: %s"%(host, port, data))
+        data += "\x03"
         while data:
             self.sendLine(httprequest(data[:1000]))
             data = data[1000:]
@@ -412,6 +423,23 @@ class MasterProtocol(object, LineReceiver):
         self.father = None
         self.id = None
         self.work()
+
+    def slavesync(self):
+        """
+        Answer to a NODETYPE slave command. Sent by a slavenode when a
+        connection is made and when dictionaries synchronization is wanted.
+        """
+        dp = "/app/octopus/dictionaries"
+        with open("%s/dictionaries" %(dp), "r") as f:
+            for dname in f:
+                dname = dname.replace("\n", "")
+                print "Sending %s..." %(dname)
+                with open("%s/%s.txt" %(dp, dname), "r") as g:
+                    dict = g.read().decode('latin-1').encode('utf-8')
+                    dict = dict.split("\n")
+                    self.sendPut("dictionary", [dict, dname])
+                print "%s sent!" %(dname)
+        self.slave()
 
     def putFile(self, chunk, path):
         """

@@ -65,6 +65,16 @@ api_port = api["port"]
 logger = logs.Logger("%s/slave.log" %(home), reactor)
 
 
+def yesno():
+    ans = raw_input("Synchronize dictionaries ? [yes/no] ")
+    if ans == "yes":
+        return False
+    elif ans == "no":
+        return True
+    else:
+        yesno()
+
+
 def parse_args():
     """
     Arguments parser
@@ -76,10 +86,18 @@ def parse_args():
     help = "Debug mode"
     parser.add_option("-d", "--debug", action = "store_true", help = help)
 
+    help = "No dictionary synchronization"
+    parser.add_option("-n", "--nosync", action = "store_true", help = help)
+
     options, args = parser.parse_args()
     return options
 
-debug = parse_args().debug
+options = parse_args()
+debug = options.debug
+nosync = options.nosync
+
+if not nosync:
+    nosync = yesno()
 
 
 def httprequest(data):
@@ -113,7 +131,7 @@ class SlaveProtocol(object, LineReceiver):
         self.nodes = {"api": self.api,
                         "master": self.master,
                         "secondary": self.secondary}
-        self.putActions = {"file": self.putFile,
+        self.putActions = {"dictionary": self.putDictionary,
                             "hashes": self.putHashes}
         self.getActions = {"infos": self.getInfos}
         self.sendNodetype()
@@ -160,12 +178,21 @@ class SlaveProtocol(object, LineReceiver):
         peer = self.transport.getPeer()
         host, port = peer.host, peer.port
         logger.log("Recv from %s:%d: %s"%(host, port, data))
-        self.buffer += data
-        try:
-            cmd = json.loads(self.buffer)
-        except ValueError as e:
-            #self.sendError(str(e))
+        if data[-1] == "\x03":
+            self.buffer += data[:-1]
+            try:
+                cmd = json.loads(self.buffer)
+            except ValueError as e:
+                self.sendError("Your request is not a JSON")
+        else:
+            self.buffer += data
             return
+#        self.buffer += data
+#        try:
+#            cmd = json.loads(self.buffer)
+#        except ValueError as e:
+#            #self.sendError(str(e))
+#            return
         self.buffer = ""
         if cmd:
             if cmd[0] in self.proto.keys():
@@ -183,6 +210,7 @@ class SlaveProtocol(object, LineReceiver):
         peer = self.transport.getPeer()
         host, port = peer.host, peer.port
         logger.log("Sent to %s:%d: %s\n"%(host, port, data))
+        data += "\x03"
         while data:
             self.sendLine(httprequest(data[:1000]))
             data = data[1000:]
@@ -311,11 +339,15 @@ class SlaveProtocol(object, LineReceiver):
             self.factory.ap.transport.signalProcess("KILL")
         reactor.stop()
 
-    def putFile(self, chunk, path):
+    def putDictionary(self, chunk, name):
         """
         Answer to a PUT dictionary command. Used to store a dictionary.
         """
-        pass
+        print "Writing dictionary %s..." %(name)
+        with open("%/dictionaries/%s" %(name), "a") as f:
+            chunk = "\n".join(chunk).encode('ascii', 'ignore')
+            f.write(chunk)
+        print "Dictionary %s written!" %(name)
 
     def putHashes(self, hashes, type):
         """
@@ -350,7 +382,12 @@ class SlaveProtocol(object, LineReceiver):
     def sendNodetype(self):
         if debug:
             print "SlaveProtocol.sendNodetype()"
-        self.sendRequest(json.dumps(["NODETYPE", "slave"]))
+        if nosync:
+            self.sendRequest(json.dumps(["NODETYPE", "slave"]))
+        else:
+            self.sendRequest(json.dumps(["NODETYPE", "slavesync"]))
+            shutil.rmtree("/app/octopus/tests/datest")
+            os.mkdir("/app/octopus/tests/datest")
 
     def sendOK(self, msg):
         if debug:

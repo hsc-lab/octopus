@@ -260,7 +260,8 @@ class APIProtocol(object, LineReceiver):
         self.nodes = {"api": self.api,
                         "master": self.master,
                         "secondary": self.secondary,
-                        "slave": self.slave}
+                        "slave": self.slave,
+                        "slavesync": self.slave}
         self.putActions = {"file": self.putFile,
                             "jobs": self.putJobs,
                             "hashes": self.putHashes,
@@ -356,12 +357,21 @@ class APIProtocol(object, LineReceiver):
         host, port = peer.host, peer.port
         logger.log("Recv from %s:%d: %s"%(host, port, data))
         # Requests must be sent by JSON. Send back an error if it is not.
-        self.buffer += data
-        try:
-            cmd = json.loads(self.buffer)
-        except ValueError as e:
-            #self.sendError("Your request is not a JSON")
+        if data[-1] == "\x03":
+            self.buffer += data[:-1]
+            try:
+                cmd = json.loads(self.buffer)
+            except ValueError as e:
+                self.sendError("Your request is not a JSON")
+        else:
+            self.buffer += data
             return
+#        self.buffer += data
+#        try:
+#            cmd = json.loads(self.buffer)
+#        except ValueError as e:
+#            #self.sendError("Your request is not a JSON")
+#            return
         self.buffer = ""
         if cmd:
             # If cmd does not match any known function, then an error is sent.
@@ -394,6 +404,7 @@ class APIProtocol(object, LineReceiver):
         logger.log("Sent to %s:%d: %s"%(host, port, data))
         # Wrap data into an HTTP request or an HTTP response and send it
         if self.request:
+            data += "\x03"
             while data:
                 self.sendLine(self.wrap(data[:1000]))
                 data = data[1000:]
