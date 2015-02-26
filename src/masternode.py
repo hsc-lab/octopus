@@ -31,7 +31,8 @@ from twisted.protocols.basic import LineReceiver
 from twisted.internet import protocol, reactor, defer
 from collections import deque
 from chunkify import chunkify, getChunk, saveChunk
-from params import api, masternode, secondarynode
+from params import api, masternode, secondarynode, dictpath
+from md5sum import md5sum
 import shutil
 import os
 import json
@@ -69,7 +70,7 @@ def parse_args():
     """
     Arguments parser
     """
-    usage = """usage: %prog [options] hashesFile"""
+    usage = """usage: %prog [options]"""
 
     parser = optparse.OptionParser(usage)
 
@@ -162,12 +163,13 @@ class MasterProtocol(object, LineReceiver):
                         "secondary": self.secondary,
                         "slave": self.slave,
                         "slavesync": self.slavesync}
-        self.putActions = {"file": self.putFile,
-                            "fathers": self.putFathers,
+        self.putActions = {"fathers": self.putFathers,
                             "jobs": self.putJobs,
                             "nbjobs": self.putNbJobs,
                             "hashes": self.putHashes}
-        self.getActions = {"results": self.getResults}
+        self.getActions = {"results": self.getResults,
+                            "dictionaries": self.getDictionaries,
+                            "dictlist": self.getDictlist}
         self.sendNodetype()
 
     def connectionLost(self, reason):
@@ -429,23 +431,12 @@ class MasterProtocol(object, LineReceiver):
         Answer to a NODETYPE slave command. Sent by a slavenode when a
         connection is made and when dictionaries synchronization is wanted.
         """
-        dp = "/app/octopus/dictionaries"
-        with open("%s/dictionaries" %(dp), "r") as f:
-            for dname in f:
-                dname = dname.replace("\n", "")
-                print "Sending %s..." %(dname)
-                with open("%s/%s.txt" %(dp, dname), "r") as g:
-                    dict = g.read().decode('latin-1').encode('utf-8')
-                    dict = dict.split("\n")
-                    self.sendPut("dictionary", [dict, dname])
-                print "%s sent!" %(dname)
-        self.slave()
-
-    def putFile(self, chunk, path):
-        """
-        Answer to a PUT dictionary command. Used to store a dictionary.
-        """
-        pass
+        if debug:
+            print "MasterProtocol.slave()"
+        self.factory.slavenodes.append(self)
+        self.job = None
+        self.father = None
+        self.id = None
 
     def putFathers(self, fathers, id):
         """
@@ -489,6 +480,27 @@ class MasterProtocol(object, LineReceiver):
             except UnicodeEncodeError:
                 pass
         self.sendOK("Hashes uploaded")
+
+    def getDictionaries(self, dictlist):
+        for dname in dictlist:
+            print "Sending %s..." %(dname)
+            with open("%s/%s.txt" %(dictpath, dname), "r") as g:
+                dict = g.read().decode('latin-1').encode('utf-8')
+                dict = dict.split("\n")
+                while dict:
+                    self.sendPut("dictionary", [dict[:100000], dname])
+                    dict = dict[100000:]
+            print "%s sent!" %(dname)
+        self.work()
+
+    def getDictlist(self):
+        dictlist = dict()
+        with open("%s/dictionaries" %(dictpath), "r") as f:
+            for line in f:
+                line = line.replace("\n", "")
+                md5digest = md5sum("%s/%s.txt" %(dictpath, line))
+                dictlist[md5digest] = line
+        self.sendPut("dictlist", [dictlist])
 
     def getResults(self, id):
         """

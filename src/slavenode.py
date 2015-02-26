@@ -32,6 +32,7 @@ from twisted.internet import protocol, reactor, defer
 from params import slavenode as config
 from params import charsets, api
 from attacks import format, makeJob, attack
+from md5sum import md5sum
 import attacks
 import shutil
 import os
@@ -132,6 +133,7 @@ class SlaveProtocol(object, LineReceiver):
                         "master": self.master,
                         "secondary": self.secondary}
         self.putActions = {"dictionary": self.putDictionary,
+                            "dictlist": self.putDictlist,
                             "hashes": self.putHashes}
         self.getActions = {"infos": self.getInfos}
         self.sendNodetype()
@@ -322,6 +324,8 @@ class SlaveProtocol(object, LineReceiver):
         if debug:
             print "SlaveProtocol.master()"
         self.factory.master = self
+        if not nosync:
+            self.sendGet("dictlist")
 
     def secondary(self):
         """
@@ -343,11 +347,41 @@ class SlaveProtocol(object, LineReceiver):
         """
         Answer to a PUT dictionary command. Used to store a dictionary.
         """
-        print "Writing dictionary %s..." %(name)
-        with open("%/dictionaries/%s" %(name), "a") as f:
-            chunk = "\n".join(chunk).encode('ascii', 'ignore')
+        name = name + ".txt"
+        with open("%s/dictionaries/%s" %(home, name), "a") as f:
+            chunk = "\n".join(chunk).encode("utf-8")
             f.write(chunk)
-        print "Dictionary %s written!" %(name)
+
+    def putDictlist(self, dictlist):
+        """
+        Answer to a PUT dictionary command. Used to store a dictionary.
+        """
+        dictpath = "%s/dictionaries" %(home)
+        files = os.listdir(dictpath)
+        files = [f for f in files if os.path.isfile(os.path.join(dictpath, f))]
+        sdicts = dict()
+        for f in files:
+            md5digest = md5sum(os.path.join(dictpath, f))
+            sdicts[md5digest] = f
+        toGet = []
+        print "Downloading dictionaries:"
+        for key in dictlist:
+            if key in sdicts:
+                print "    [ ]", dictlist[key]
+                if not sdicts[key][:-4] == dictlist[key]:
+                    old = os.path.join(dictpath, sdicts[key])
+                    new = os.path.join(dictpath, dictlist[key]) + ".txt"
+                    os.rename(old, new)
+            if not key in sdicts:
+                print "    [X]", dictlist[key]
+                toGet.append(dictlist[key])
+        val = sdicts.values()
+        for dname in toGet:
+            dname += ".txt"
+            check = os.path.join(dictpath, dname)
+            if os.path.isfile(check):
+                os.remove(check)
+        self.sendGet("dictionaries", [toGet])
 
     def putHashes(self, hashes, type):
         """
@@ -386,8 +420,6 @@ class SlaveProtocol(object, LineReceiver):
             self.sendRequest(json.dumps(["NODETYPE", "slave"]))
         else:
             self.sendRequest(json.dumps(["NODETYPE", "slavesync"]))
-            shutil.rmtree("/app/octopus/tests/datest")
-            os.mkdir("/app/octopus/tests/datest")
 
     def sendOK(self, msg):
         if debug:
@@ -403,6 +435,11 @@ class SlaveProtocol(object, LineReceiver):
         if debug:
             print "SlaveProtocol.sendPut(%s, ...)" %(type)
         self.sendRequest(json.dumps(["PUT", type, object]))
+
+    def sendGet(self, type, object=[]):
+        if debug:
+            print "SlaveProtocol.sendGet(%s, ...)" %(type)
+        self.sendRequest(json.dumps(["GET", type, object]))
 
     def sendResult(self, results):
         if debug:
