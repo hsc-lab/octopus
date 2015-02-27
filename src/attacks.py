@@ -265,7 +265,10 @@ def make_hashcat_dictionary(job):
     nb = int(nb)
     step = int(step)
     with open("%s/dictionaries/%s.txt" %(slavehome, dname), "r") as f:
-        job = f.readlines()[nb*step:(nb+1)*step]
+        job = f.readlines()
+        if (len(job) - 1) < nb*step:
+            return ""
+        job = job[nb*step:(nb+1)*step]
         job = [w.replace("\n", "") for w in job]
     if os.path.exists("%s/tmp/chunk" %(slavehome)):
         os.remove("%s/tmp/chunk" %(slavehome))
