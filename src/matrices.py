@@ -127,10 +127,7 @@ class Matrix(object):
 
 
 def sum(nbs):
-    accu = 0
-    for nb in nbs:
-        accu += nb
-    return accu
+    return sum(nbs)
 
 
 def E(att, i):
