@@ -261,7 +261,7 @@ def make_hashcat_mask(job):
 def make_hashcat_dictionary(job):
     dname, nb, step = job.split(":")
     if not os.path.isfile("%s/dictionaries/%s.txt" %(slavehome, dname)):
-        return
+        return ""
     nb = int(nb)
     step = int(step)
     with open("%s/dictionaries/%s.txt" %(slavehome, dname), "r") as f:

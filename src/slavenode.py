@@ -134,6 +134,7 @@ class SlaveProtocol(object, LineReceiver):
                         "secondary": self.secondary}
         self.putActions = {"dictionary": self.putDictionary,
                             "dictlist": self.putDictlist,
+                            "chunk": self.putChunk,
                             "hashes": self.putHashes}
         self.getActions = {"infos": self.getInfos}
         self.sendNodetype()
@@ -360,10 +361,7 @@ class SlaveProtocol(object, LineReceiver):
         """
         Answer to a PUT chunk command. Used to store a chunk.
         """
-        with open("%s/tmp/chunk" %(home), "a") as f:
-            chunk = "\n".join(chunk).encode("utf-8")
-            f.write(chunk)
-        self.deferatt.callback()
+        self.deferatt.callback(chunk)
 
     def putDictionary(self, chunk, name):
         """
@@ -481,7 +479,10 @@ class SlaveProtocol(object, LineReceiver):
         self.sendRequest(json.dumps(["WAIT"]))
 
     # ======================= END SEND FUNCTIONS ======================= #
-    def resumeAtt(self):
+    def resumeAtt(self, chunk):
+        with open("%s/tmp/chunk" %(home), "w") as f:
+            chunk = chunk.encode("utf-8")
+            f.write(chunk)
         reg = self.reg
         program = self.program
         type = self.type

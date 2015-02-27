@@ -496,8 +496,10 @@ class MasterProtocol(object, LineReceiver):
 
     def getChunk(self, dic, nb, step):
         with open("%s/%s.txt" %(dictpath, dic), "r") as f:
-            chunk = "\n".join(f.readlines()[nb*step:(nb+1)*step])
-            self.sendPut("dictionary", [chunk, dic])
+            chunk = f.readlines()[nb*step:(nb+1)*step]
+            chunk = [w.replace("\n", "") for w in chunk]
+            chunk = "\n".join(chunk)
+            self.sendPut("chunk", [chunk])
 
     def getDictlist(self):
         dictlist = dict()
