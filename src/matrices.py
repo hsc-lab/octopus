@@ -126,8 +126,6 @@ class Matrix(object):
                 self[i, kj] = self[i, kj]*(1-alpha)
 
 
-def sum(nbs):
-    return sum(nbs)
 
 
 def E(att, i):
